@@ -22,11 +22,12 @@ usage()
 	echo
 	echo "Variables you can set in ~/.absentrc:"
 	echo "\$searchdirs (currently ${searchdirs[@]:-undefined}):"
-	echo "   Array of directories to recursively search."
-	echo "   absent will look for a directory named like your search/names, containing a PKGBUILD."
+	echo "  Array of directories to recursively search."
+	echo "  absent will look for a directory named like your search/names, containing a PKGBUILD."
 	echo "\$builddir (currently ${builddir:-undefined}):"
-	echo "\$makepkgargs (currently ${makepkgargs:-undefined}): Default makepkg arguments."
-	echo "   The directory absent will use for copying to and building in."
+	echo "  The directory absent will use for copying to and building in."
+	echo "\$makepkgargs (currently ${makepkgargs:-undefined}):"
+	echo "  Default makepkg arguments."
 }
 yesno()
 {
