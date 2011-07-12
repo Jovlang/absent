@@ -1,0 +1,110 @@
+#!/bin/bash
+# Tool for Arch Linux to quickly search a tree of PKGBUILDs and build packages.
+# Written by Johannes Langøy, 2010-2011. Public domain.
+
+searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
+builddir="/tmp/absent-$USER"
+makepkgargs="-fsci"
+
+color1=$'\e[1;31m'
+color2=$'\e[1;34m'
+color3=$'\e[1;33m'
+ec=$'\e[0m' # end color
+
+[[ -r ~/.absentrc ]] && . ~/.absentrc
+
+usage()
+{
+	echo "absent -S [names]: find [names] in \$searchdirs and build in \$builddir."
+	echo "absent -Sn [names]: Same as above, but non-interactive."
+	echo "absent [string]: Search with number selection."
+	echo "absent -h|--help: This message."
+	echo
+	echo "Variables you can set in ~/.absentrc:"
+	echo "\$searchdirs (currently ${searchdirs[@]:-undefined}):"
+	echo "   Array of directories to recursively search."
+	echo "   absent will look for a directory named like your search/names, containing a PKGBUILD."
+	echo "\$builddir (currently ${builddir:-undefined}):"
+	echo "\$makepkgargs (currently ${makepkgargs:-undefined}): Default makepkg arguments."
+	echo "   The directory absent will use for copying to and building in."
+}
+yesno()
+{
+	echo -n "$* [y/N] "
+	read -r
+	[[ $REPLY = y* ]] || return 1
+}
+interactive()
+{
+	if yesno "${color3}::${ec} Edit PKGBUILD?"; then
+		${EDITOR:-vi} PKGBUILD
+	fi
+	unset install
+	source PKGBUILD
+	if [[ -n $install ]]; then
+		if yesno "${color3}::${ec} Edit ${install}?"; then
+			${EDITOR:-vi} "$install"
+		fi
+	fi
+	if [[ -n $makepkgargs ]] && ! yesno "${color3}::${ec} Use \$makepkgargs ($makepkgargs)?"; then
+		echo -n "${color3}::$ec Enter arguments to pass to makepkg: "
+		read -r makepkgargs
+	fi
+}
+
+[[ -z $1 ]] && usage && exit
+if ! mkdir -p "$builddir"; then
+	echo "${color1}::${ec} Fix your \$builddir."
+fi
+
+case $1 in
+	-S|-Sn)
+		mode=$1
+		shift
+		for n in "$@"; do
+			# For performance, try non-recursively first, then recursively.
+			unset match
+			for r in "${searchdirs[@]}"; do
+				if [[ -d ${r}/${n} && -f ${r}/${n}/PKGBUILD ]]; then
+					match=${r}/${n}
+				fi
+			done
+			if [[ -z $match ]]; then
+				if ! read -r match < <(find "${searchdirs[@]}" -name $n) || ! [[ -r ${match}/PKGBUILD ]]; then
+					echo "${color1}::${ec} $n not found in ${searchdirs[@]}."
+					exit 1
+				fi
+			fi
+			cp -r "$match" "$builddir" || exit
+			echo "${color2}::$ec $n found in ${match%/*} and copied to $builddir."
+			cd "$builddir"/${n}
+			rm -rf pkg src
+			[[ $mode = -S ]] && { interactive || exit; }
+			makepkg $makepkgargs || exit
+			unset match
+		done
+		;;
+	-h|--help)
+		usage && exit
+		;;
+	*)
+		while read -r; do
+			if [[ -f "$REPLY"/PKGBUILD ]]; then
+				list+=("$REPLY")
+			fi
+		done < <(find "${searchdirs[@]}" -type d -name "*$**")
+		if [[ -z $list ]]; then
+			echo "${color1}::$ec No matches found in ${searchdirs[@]}."
+			exit
+		fi
+		select n in "${list[@]}"; do
+			[ $n ] || exit
+			cp -r "$n" "$builddir" || exit
+			echo "${color2}::${ec} $n copied to $builddir."
+			cd "$builddir/${n##*/}"
+			interactive || exit
+			makepkg $makepkgargs || exit
+			break
+		done
+		;;
+esac
