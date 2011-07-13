@@ -11,7 +11,12 @@ color2=$'\e[1;34m'
 color3=$'\e[1;33m'
 ec=$'\e[0m' # end color
 
-[[ -r ~/.absentrc ]] && . ~/.absentrc
+xdgconf="${XDG_CONFIG_HOME:-$HOME/.config}/absent/absentrc"
+if [[ -r "$xdgconf" ]]; then
+	source "$xdgconf"
+elif [[ -r ~/.absentrc ]]; then
+	source ~/.absentrc
+fi
 
 usage()
 {
@@ -20,7 +25,7 @@ usage()
 	echo "absent [string]: Search with number selection."
 	echo "absent -h|--help: This message."
 	echo
-	echo "Variables you can set in ~/.absentrc:"
+	echo "Variables you can set in ${xdgconf/$HOME/~} or ~/.absentrc:"
 	echo "\$searchdirs (currently ${searchdirs[@]:-undefined}):"
 	echo "  Array of directories to recursively search."
 	echo "  absent will look for a directory named like your search/names, containing a PKGBUILD."
