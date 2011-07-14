@@ -36,12 +36,18 @@ usage()
 }
 yesno()
 {
-	echo -n "$* [y/N] "
+	echo -n "$* [Y/n] "
 	read -r
-	[[ $REPLY = y* ]] || return 1
+	case $REPLY in
+		(''|[yY]*) return 0 ;;
+		(*) return 1 ;;
+	esac
 }
 interactive()
 {
+	if type -t customizepkg &>/dev/null && [[ -f /etc/customizepkg.d/$1 ]] && yesno "${color3}::${ec} Use customizepkg modifications?"; then
+		customizepkg --modify
+	fi
 	if yesno "${color3}::${ec} Edit PKGBUILD?"; then
 		${EDITOR:-vi} PKGBUILD
 	fi
@@ -85,7 +91,7 @@ case $1 in
 			echo "${color2}::$ec $n found in ${match%/*} and copied to $builddir."
 			cd "$builddir"/${n}
 			rm -rf pkg src
-			[[ $mode = -S ]] && { interactive || exit; }
+			[[ $mode = -S ]] && { interactive "$n" || exit; }
 			makepkg $makepkgargs || exit
 			unset match
 		done
@@ -108,7 +114,7 @@ case $1 in
 			cp -r "$n" "$builddir" || exit
 			echo "${color2}::${ec} $n copied to $builddir."
 			cd "$builddir/${n##*/}"
-			interactive || exit
+			interactive "${n##*/}" || exit
 			makepkg $makepkgargs || exit
 			break
 		done
