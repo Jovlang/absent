@@ -18,8 +18,7 @@ elif [[ -r ~/.absentrc ]]; then
 	source ~/.absentrc
 fi
 
-usage()
-{
+function usage {
 	echo "absent -S [names]: find [names] in \$searchdirs and build in \$builddir."
 	echo "absent -Sn [names]: Same as above, but non-interactive."
 	echo "absent [string]: Search with number selection."
@@ -34,8 +33,8 @@ usage()
 	echo "\$makepkgargs (currently ${makepkgargs:-undefined}):"
 	echo "  Default makepkg arguments."
 }
-yesno()
-{
+
+function yesno {
 	echo -n "$* [Y/n] "
 	read -r
 	case $REPLY in
@@ -43,8 +42,8 @@ yesno()
 		(*) return 1 ;;
 	esac
 }
-interactive()
-{
+
+function interactive {
 	if type -t customizepkg &>/dev/null && [[ -f /etc/customizepkg.d/$1 ]] && yesno "${color3}::${ec} Use customizepkg modifications?"; then
 		customizepkg --modify
 	fi
@@ -82,7 +81,7 @@ case $1 in
 				fi
 			done
 			if [[ -z $match ]]; then
-				if ! read -r match < <(find "${searchdirs[@]}" -name $n) || ! [[ -r ${match}/PKGBUILD ]]; then
+				if ! read -r match < <(find "${searchdirs[@]}" -name $n) && ! [[ -r ${match}/PKGBUILD ]]; then
 					echo "${color1}::${ec} $n not found in ${searchdirs[@]}."
 					exit 1
 				fi
@@ -93,18 +92,17 @@ case $1 in
 			rm -rf pkg src
 			[[ $mode = -S ]] && { interactive "$n" || exit; }
 			makepkg $makepkgargs || exit
-			unset match
 		done
 		;;
 	-h|--help)
 		usage && exit
 		;;
 	*)
-		while read -r; do
-			if [[ -f "$REPLY"/PKGBUILD ]]; then
-				list+=("$REPLY")
+		for i in $(find "${searchdirs[@]}" -type d -name "*$**"); do
+			if [[ -f $i/PKGBUILD ]]; then
+				list+=("$i")
 			fi
-		done < <(find "${searchdirs[@]}" -type d -name "*$**")
+		done
 		if [[ -z $list ]]; then
 			echo "${color1}::$ec No matches found in ${searchdirs[@]}."
 			exit
