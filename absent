@@ -44,9 +44,6 @@ function yesno {
 }
 
 function interactive {
-	if yesno "${color3}::${ec} Sync $1 from abs?"; then
-		sudo abs $1
-	fi
 	if [[ -f /etc/customizepkg.d/${1##*/} ]] && yesno "${color3}::${ec} Use customizepkg modifications?"; then
 		customizepkg --modify
 	fi
@@ -73,7 +70,7 @@ fi
 
 case $1 in
 	-S|-Sn)
-		mode=$1
+		[[ $1 = -S ]] && intv=1
 		shift
 		for n in "$@"; do
 			# For performance, try non-recursively first, then recursively.
@@ -89,11 +86,16 @@ case $1 in
 					exit 1
 				fi
 			fi
+			echo "${color2}::$ec $n found in ${match%/*}."
+			if (( intv )); then
+				if yesno "${color3}::${ec} Sync $1 from abs?"; then
+					sudo abs $1
+				fi
+			fi
 			cp -r "$match" "$builddir" || exit
-			echo "${color2}::$ec $n found in ${match%/*} and copied to $builddir."
 			cd "$builddir"/${n}
 			rm -rf pkg src
-			if [[ $mode = -S ]]; then
+			if (( intv )); then
 				interactive "$match" || exit
 			fi
 			makepkg $makepkgargs || exit
