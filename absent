@@ -88,7 +88,7 @@ case $1 in
 			fi
 			echo "${color2}::$ec $n found in ${match%/*}."
 			if (( intv )); then
-				if yesno "${color3}::${ec} Sync $1 from abs?"; then
+				if yesno "${color3}::${ec} Sync $n from abs?"; then
 					sudo abs $1
 				fi
 			fi
@@ -116,8 +116,10 @@ case $1 in
 		fi
 		select n in "${list[@]}"; do
 			[ $n ] || exit
+			if yesno "${color3}::${ec} Sync $n from abs?"; then
+				sudo abs $1
+			fi
 			cp -r "$n" "$builddir" || exit
-			echo "${color2}::${ec} $n copied to $builddir."
 			cd "$builddir/${n##*/}"
 			interactive "$n" || exit
 			makepkg $makepkgargs || exit
