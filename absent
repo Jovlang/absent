@@ -64,36 +64,38 @@ function interactive {
 }
 
 [[ -z $1 ]] && usage && exit
-if ! mkdir -p "$builddir"; then
-	echo "${color1}::${ec} Fix your \$builddir."
-fi
 
 case $1 in
 	-S|-Sn)
 		[[ $1 = -S ]] && intv=1
 		shift
-		for n in "$@"; do
+		for name in "$@"; do
 			# For performance, try non-recursively first, then recursively.
 			unset match
-			for r in "${searchdirs[@]}"; do
-				if [[ -d ${r}/${n} && -f ${r}/${n}/PKGBUILD ]]; then
-					match="${r}/${n}"
+			for dir in "${searchdirs[@]}"; do
+				if [[ -d ${repo}/${name} && -f ${repo}/${name}/PKGBUILD ]]; then
+					match="${repo}/${name}"
 				fi
 			done
 			if [[ -z $match ]]; then
-				if ! read -r match < <(find "${searchdirs[@]}" -name $n) && ! [[ -r ${match}/PKGBUILD ]]; then
-					echo "${color1}::${ec} $n not found in ${searchdirs[@]}."
+				if ! read -r match < <(find "${searchdirs[@]}" -name $name) && ! [[ -r ${match}/PKGBUILD ]]; then
+					echo "${color1}::${ec} $name not found in ${searchdirs[@]}."
 					exit 1
 				fi
 			fi
-			echo "${color2}::$ec $n found in ${match%/*}."
+			matchdir="${match%/*}"
+			builddir="${builddir}/${matchdir##*/}"
+			if ! mkdir -p "$builddir"; then
+				echo "${color1}::${ec} Fix your \$builddir."
+			fi
+			echo "${color2}::$ec $name found in $matchdir."
 			if (( intv )); then
-				if yesno "${color3}::${ec} Sync $n from abs?"; then
+				if yesno "${color3}::${ec} Sync $name from abs?"; then
 					sudo abs $1
 				fi
 			fi
 			cp -r "$match" "$builddir" || exit
-			cd "$builddir"/${n}
+			cd "$builddir/$name"
 			rm -rf pkg src
 			if (( intv )); then
 				interactive "$match" || exit
@@ -114,14 +116,20 @@ case $1 in
 			echo "${color1}::$ec No matches found in ${searchdirs[@]}."
 			exit
 		fi
-		select n in "${list[@]}"; do
-			[ $n ] || exit
-			if yesno "${color3}::${ec} Sync $n from abs?"; then
-				sudo abs $1
+		select match in "${list[@]}"; do
+			[ $match ] || exit
+			name="${match##*/}"
+			matchdir="${match%/*}"
+			builddir="${builddir}/${matchdir##*/}"
+			if ! mkdir -p "$builddir"; then
+				echo "${color1}::${ec} Fix your \$builddir."
 			fi
-			cp -r "$n" "$builddir" || exit
-			cd "$builddir/${n##*/}"
-			interactive "$n" || exit
+			if yesno "${color3}::${ec} Sync $match from abs?"; then
+				sudo abs "$match"
+			fi
+			cp -r "$match" "$builddir" || exit
+			cd "$builddir/$name"
+			interactive "$match" || exit
 			makepkg $makepkgargs || exit
 			break
 		done
