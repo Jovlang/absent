@@ -1,6 +1,6 @@
 #!/bin/bash
 # Tool for Arch Linux to quickly search a tree of PKGBUILDs and build packages.
-# Written by Johannes Langøy, 2010-2011. Public domain.
+# Written by Johannes Langøy, 2010-2013. Public domain.
 
 searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
 builddir="/tmp/absent-$USER"
@@ -58,12 +58,19 @@ function interactive {
 		fi
 	fi
 	if [[ -n $makepkgargs ]] && ! yesno "${color3}::${ec} Use \$makepkgargs ($makepkgargs)?"; then
-		echo -n "${color3}::${ec} Enter arguments to pass to makepkg}: "
+		echo -n "${color3}::${ec} Enter arguments to pass to makepkg: "
 		read -r makepkgargs
 	fi
 }
 
 [[ -z $1 ]] && usage && exit
+
+for dir in "${searchdirs[@]}"; do
+	if [[ ! -d "${dir}" ]]; then
+		echo "${color1}::${ec} One or more of the directories in \$searchdirs (${searchdirs[@]}) not found."
+		exit 1
+	fi
+done
 
 case $1 in
 	-S|-Sn)
@@ -73,16 +80,16 @@ case $1 in
 			# For performance, try non-recursively first, then recursively.
 			unset match
 			for dir in "${searchdirs[@]}"; do
-				if [[ -d ${repo}/${name} && -f ${repo}/${name}/PKGBUILD ]]; then
-					match="${repo}/${name}"
+				if [[ -d ${dir}/${name} && -f ${dir}/${name}/PKGBUILD ]]; then
+					match="${dir}/${name}"
 				fi
 			done
-			if [[ -z $match ]]; then
-				if ! read -r match < <(find "${searchdirs[@]}" -name $name) && ! [[ -r ${match}/PKGBUILD ]]; then
-					echo "${color1}::${ec} $name not found in ${searchdirs[@]}."
-					exit 1
-				fi
-			fi
+#			if [[ -z $match ]]; then
+#				if ! read -r match < <(find "${searchdirs[@]}" -name $name) && ! [[ -r ${match}/PKGBUILD ]]; then
+#					echo "${color1}::${ec} $name not found in ${searchdirs[@]}."
+#					exit 1
+#				fi
+#			fi
 			matchdir="${match%/*}"
 			builddir="${builddir}/${matchdir##*/}"
 			if ! mkdir -p "$builddir"; then
