@@ -84,12 +84,12 @@ case $1 in
 					match="${dir}/${name}"
 				fi
 			done
-#			if [[ -z $match ]]; then
-#				if ! read -r match < <(find "${searchdirs[@]}" -name $name) && ! [[ -r ${match}/PKGBUILD ]]; then
-#					echo "${color1}::${ec} $name not found in ${searchdirs[@]}."
-#					exit 1
-#				fi
-#			fi
+			if [[ -z $match ]]; then
+				if ! read -r match < <(find "${searchdirs[@]}" -name $name) && ! [[ -r ${match}/PKGBUILD ]]; then
+					echo "${color1}::${ec} $name not found in ${searchdirs[@]}."
+					exit 1
+				fi
+			fi
 			matchdir="${match%/*}"
 			builddir="${builddir}/${matchdir##*/}"
 			if ! mkdir -p "$builddir"; then
