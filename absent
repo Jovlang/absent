@@ -64,7 +64,10 @@ function interactive {
 	fi
 }
 
-[[ -z "$1" ]] && usage && exit
+if [[ -z "$1" ]]; then
+	usage
+	exit
+fi
 
 for dir in "${searchdirs[@]}"; do
 	if [[ ! -d "$dir" ]]; then
@@ -114,10 +117,11 @@ case "$1" in
 		done
 		;;
 	-h|--help)
-		usage && exit
+		usage
+		exit
 		;;
 	*)
-		for i in $(find "${searchdirs[@]}" -type d -name "*$**"); do
+		for i in "$(find "${searchdirs[@]}" -type d -name "*$**")"; do
 			if [[ -f $i/PKGBUILD ]]; then
 				list+=("$i")
 			fi
