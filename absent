@@ -121,7 +121,7 @@ case "$1" in
 		exit
 		;;
 	*)
-		for i in "$(find "${searchdirs[@]}" -type d -name "*$**")"; do
+		for i in $(find "${searchdirs[@]}" -type d -name "*$**"); do
 			if [[ -f $i/PKGBUILD ]]; then
 				list+=("$i")
 			fi
