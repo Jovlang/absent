@@ -6,19 +6,50 @@ searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
 builddir="/tmp/absent-$USER"
 mkdir -p "$builddir"
 
-case "$1" in
-    -S)
-        for dir in "${searchdirs[@]}"; do
-            if [[ -d "$dir/$2/" && -f "$dir/$2/PKGBUILD" ]]; then
-                match="$dir/$2/"
-                break 2
-            fi
-        done
-        if [[ -z "$match" ]]; then
-            echo "No match found."
-            exit 1
+function ask {
+    echo -n "$* [Y/n] "
+    read -r
+    case "$REPLY" in
+        (''|[yY]*) return 0 ;;
+        (*) return 1 ;;
+    esac
+}
+
+function find-copy-go {
+    name="$1"
+    dest="$2"
+    unset match
+    for dir in "${searchdirs[@]}"; do
+        if [[ -d "$dir/$name/" && -f "$dir/$name/PKGBUILD" ]]; then
+            match="$dir/$name/"
+            break 2
         fi
-        cp -r "$match" "$builddir"
-        cd "$builddir/$(basename $match)"
+    done
+    if [[ -z "$match" ]]; then
+        echo "No match found."
+        exit 1
+    fi
+    cp -r "$match" "$dest"
+    cd "$dest/$(basename $match)"
+}
+
+function interactive {
+    if ask "Edit PKGBUILD?"; then
+        ${EDITOR:-vi} PKGBUILD
+    fi
+}
+
+case "$1" in
+    (-S)
+        find-copy-go "$2" "$builddir"
+        interactive
         makepkg -fsci
+        ;;
+    (-Sn)
+        find-copy-go "$2" "$builddir"
+        makepkg -fsci --noconfirm
+        ;;
+    (-o)
+        find-copy-go "$2" .
+        makepkg -o
 esac
