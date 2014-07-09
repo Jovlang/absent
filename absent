@@ -6,8 +6,23 @@ searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
 builddir="/tmp/absent-$USER"
 mkdir -p "$builddir"
 
+leader=$'\e[1;34m::\e[0m'
+
+function usage {
+    echo "absent -- an ABS handler"
+    echo "usage: absent [flag] [name]"
+    echo "-S: build and install [name]"
+    echo "-O: copy [name] to the current directory and fetch sources"
+    echo "-Sn: like -S, but with all interactive features disabled"
+    echo "-On: idem for -O"
+}
+
+function lecho {
+    echo "$leader $*"
+}
+
 function ask {
-    echo -n "$* [Y/n] "
+    echo -n "$leader $* [Y/n] "
     read -r
     case "$REPLY" in
         (''|[yY]*) return 0 ;;
@@ -22,13 +37,14 @@ function find-copy-go {
     for dir in "${searchdirs[@]}"; do
         if [[ -d "$dir/$name/" && -f "$dir/$name/PKGBUILD" ]]; then
             match="$dir/$name/"
-            break 2
+            break
         fi
     done
     if [[ -z "$match" ]]; then
-        echo "No match found."
+        lecho "No match found for $name in (${searchdirs[@]})."
         exit 1
     fi
+    lecho "$name copied from $dir."
     cp -r "$match" "$dest"
     cd "$dest/$(basename $match)"
 }
@@ -39,17 +55,42 @@ function interactive {
     fi
 }
 
-case "$1" in
+if [[ -z "$2" ]]; then # confirm that we have at least 2 arguments
+    usage
+    exit
+fi
+
+flag="$1"
+shift
+
+case "$flag" in
     (-S)
-        find-copy-go "$2" "$builddir"
-        interactive
-        makepkg -fsci
+        for i in "$@"; do
+            find-copy-go "$i" "$builddir"
+            interactive
+            makepkg -fsci
+            cd ..
+        done
         ;;
     (-Sn)
-        find-copy-go "$2" "$builddir"
-        makepkg -fsci --noconfirm
+        for i in "$@"; do
+            find-copy-go "$i" "$builddir"
+            makepkg -fsci --noconfirm
+            cd ..
+        done
         ;;
-    (-o)
-        find-copy-go "$2" .
-        makepkg -o
+    (-O)
+        for i in "$@"; do
+            find-copy-go "$i" .
+            interactive
+            makepkg -o
+            cd ..
+        done
+        ;;
+    (-On)
+        for i in "$@"; do
+            find-copy-go "$i" .
+            makepkg -o
+            cd ..
+        done
 esac
