@@ -4,6 +4,12 @@
 
 searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
 builddir="/tmp/absent-$USER"
+
+# You can override the above variables in this config file.
+if [[ -f ~/.absentrc ]]; then
+    source ~/.absentrc
+fi
+
 mkdir -p "$builddir"
 
 leader=$'\e[1;34m::\e[0m'
