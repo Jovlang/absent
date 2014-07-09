@@ -2,18 +2,6 @@
 # Tool for Arch Linux to search a tree of PKGBUILDs and build packages.
 # 2010-2014, Johannes Langøy. Public domain.
 
-searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
-builddir="/tmp/absent-$USER"
-
-# You can override the above variables in this config file.
-if [[ -f ~/.absentrc ]]; then
-    source ~/.absentrc
-fi
-
-mkdir -p "$builddir"
-
-leader=$'\e[1;34m::\e[0m'
-
 function usage {
     echo "absent -- an ABS handler"
     echo "usage: absent [flag] [name]"
@@ -60,6 +48,21 @@ function interactive {
         ${EDITOR:-vi} PKGBUILD
     fi
 }
+
+searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
+builddir="/tmp/absent-$USER"
+
+# You can override the above variables in this config file.
+if [[ -f ~/.absentrc ]]; then
+    source ~/.absentrc
+fi
+
+if ! mkdir -p "$builddir"; then
+    lecho "Fix your \$builddir."
+    exit 1
+fi
+
+leader=$'\e[1;34m::\e[0m'
 
 if [[ -z "$2" ]]; then # confirm that we have at least 2 arguments
     usage
