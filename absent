@@ -100,11 +100,6 @@ case "$1" in
 				echo "${color1}::${ec} Fix your \$builddir."
 			fi
 			echo "${color2}::$ec $name found in $matchdir."
-			if (( intv )); then
-				if yesno "${color3}::${ec} Sync $name from abs?"; then
-					sudo abs "$1"
-				fi
-			fi
 			cp -r "$match" "$builddir" || exit
 			cd "$builddir/$name"
 			rm -rf pkg src
