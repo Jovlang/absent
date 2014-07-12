@@ -6,9 +6,8 @@ function usage {
     echo "absent -- an ABS handler"
     echo "usage: absent [flag] [name]"
     echo "-S: build and install [name]"
-    echo "-O: copy [name] to the current directory and fetch sources"
     echo "-Sn: like -S, but with all interactive features disabled"
-    echo "-On: idem for -O"
+    echo "-C: just find [name] and copy it to the current directory"
 }
 
 function lecho {
@@ -88,18 +87,13 @@ case "$flag" in
             cd ..
         done
         ;;
-    (-O)
+    (-C)
         for i in "$@"; do
             find-copy-go "$i" .
-            interactive
-            makepkg -o
             cd ..
         done
         ;;
-    (-On)
-        for i in "$@"; do
-            find-copy-go "$i" .
-            makepkg -o
-            cd ..
-        done
+    (*)
+        usage
+        ;;
 esac
