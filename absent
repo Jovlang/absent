@@ -30,9 +30,9 @@ function usage {
     echo "absent -- an ABS helper
 \$searchdirs: (${searchdirs[@]})
 \$builddir: \"$builddir\"
-usage: absent [operation] [name1...]
--S: build and install package
--G: copy to the current directory"
+absent -S [name..]: build and install
+absent -G [name..]: copy to the current directory
+absent [string]: select from packages whose name matches the given string"
 }
 
 function find-copy {
@@ -65,35 +65,44 @@ function interactive {
     fi
 }
 
-if [[ "$#" < 2 ]]; then
-    usage
-    exit 1
-fi
-
 if ! mkdir -p "$builddir"; then
     lecho "Fix your \$builddir."
     exit 1
 fi
 
-flag="$1"
-shift
+if [[ "$#" == 0 ]]; then
+    usage
+    exit 1
+fi
 
-case "$flag" in
+case "$1" in
     (-S)
+        shift
         for i in "$@"; do
             find-copy "$i" "$builddir"
             cd "$match"
             interactive
-            makepkg -o
+            makepkg -fsci
             cd ..
         done
         ;;
     (-G)
+        shift
         for i in "$@"; do
             find-copy "$i" .
         done
         ;;
-    (*)
+    (-h)
         usage
+        exit
+        ;;
+    (*)
+        select match in $(find "${searchdirs[@]}" -maxdepth 1 -type d -name "*$**"); do
+            cp -r "$match" "$builddir"
+            cd "$builddir/$(basename $match)"
+            interactive
+            makepkg -fsci
+            break
+        done
         ;;
 esac
