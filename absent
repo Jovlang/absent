@@ -1,6 +1,6 @@
 #!/bin/bash
 # Interface to the Arch Linux ABS (Arch Build System)
-# absent is to the ABS what packer, clyde, etc. are to the AUR.
+# absent is to the ABS what aurget, packer, etc. are to the AUR.
 # 2010-2014, Johannes Langøy. Public domain.
 
 searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
@@ -70,14 +70,16 @@ if ! mkdir -p "$builddir"; then
     exit 1
 fi
 
-if [[ "$#" == 0 ]]; then
+case "$1" in
+("")
     usage
     exit 1
-fi
-
-case "$1" in
+    ;;
+(-*)
+    flag="$1"
+    shift
+    case "$flag" in
     (-S)
-        shift
         for i in "$@"; do
             find-copy "$i" "$builddir"
             cd "$match"
@@ -87,22 +89,23 @@ case "$1" in
         done
         ;;
     (-G)
-        shift
         for i in "$@"; do
             find-copy "$i" .
         done
         ;;
-    (-h)
+    (*)
         usage
         exit
         ;;
-    (*)
-        select match in $(find "${searchdirs[@]}" -maxdepth 1 -type d -name "*$**"); do
-            cp -r "$match" "$builddir"
-            cd "$builddir/$(basename $match)"
-            interactive
-            makepkg -fsci
-            break
-        done
-        ;;
+    esac
+    ;;
+(*)
+    select match in $(find "${searchdirs[@]}" -maxdepth 1 -type d -name "*$**"); do
+        cp -r "$match" "$builddir"
+        cd "$builddir/$(basename $match)"
+        interactive
+        makepkg -fsci
+        break
+    done
+    ;;
 esac
