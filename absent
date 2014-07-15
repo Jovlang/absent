@@ -1,14 +1,17 @@
 #!/bin/bash
-# Tool for Arch Linux to search a tree of PKGBUILDs and build packages.
+# Interface to the Arch Linux ABS (Arch Build System)
+# absent is to the ABS what packer, clyde, etc. are to the AUR.
 # 2010-2014, Johannes Langøy. Public domain.
 
-function usage {
-    echo "absent -- an ABS handler"
-    echo "usage: absent [flag] [name]"
-    echo "-S: build and install [name]"
-    echo "-Sn: like -S, but with all interactive features disabled"
-    echo "-C: just find [name] and copy it to the current directory"
-}
+searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
+builddir="/tmp/absent-$USER"
+
+# You can override the above variables in this config file.
+if [[ -f ~/.absentrc ]]; then
+    source ~/.absentrc
+fi
+
+leader=$'\e[1;34m::\e[0m'
 
 function lecho {
     echo "$leader $*"
@@ -23,7 +26,16 @@ function ask {
     esac
 }
 
-function find-copy-go {
+function usage {
+    echo "absent -- an ABS helper
+\$searchdirs: (${searchdirs[@]})
+\$builddir: \"$builddir\"
+usage: absent [operation] [name1...]
+-S: build and install package
+-G: copy to the current directory"
+}
+
+function find-copy {
     name="$1"
     dest="$2"
     unset match
@@ -34,38 +46,33 @@ function find-copy-go {
         fi
     done
     if [[ -z "$match" ]]; then
-        lecho "No match found for $name in (${searchdirs[@]})."
+        lecho "No match found for $name in \$searchdirs (${searchdirs[@]})."
         exit 1
     fi
     lecho "$name copied from $dir."
     cp -r "$match" "$dest"
-    cd "$dest/$(basename $match)"
+    match="$dest/$(basename $match)"
 }
 
 function interactive {
     if ask "Edit PKGBUILD?"; then
         ${EDITOR:-vi} PKGBUILD
     fi
+    unset install
+    source PKGBUILD
+    if [[ -n "$install" ]] && ask "Edit $install?"; then
+        ${EDITOR:-vi} $install
+    fi
 }
 
-searchdirs=("/var/abs/core" "/var/abs/extra" "/var/abs/community")
-builddir="/tmp/absent-$USER"
-
-# You can override the above variables in this config file.
-if [[ -f ~/.absentrc ]]; then
-    source ~/.absentrc
+if [[ "$#" < 2 ]]; then
+    usage
+    exit 1
 fi
 
 if ! mkdir -p "$builddir"; then
     lecho "Fix your \$builddir."
     exit 1
-fi
-
-leader=$'\e[1;34m::\e[0m'
-
-if [[ -z "$2" ]]; then # confirm that we have at least 2 arguments
-    usage
-    exit
 fi
 
 flag="$1"
@@ -74,23 +81,16 @@ shift
 case "$flag" in
     (-S)
         for i in "$@"; do
-            find-copy-go "$i" "$builddir"
+            find-copy "$i" "$builddir"
+            cd "$match"
             interactive
-            makepkg -fsci
+            makepkg -o
             cd ..
         done
         ;;
-    (-Sn)
+    (-G)
         for i in "$@"; do
-            find-copy-go "$i" "$builddir"
-            makepkg -fsci --noconfirm
-            cd ..
-        done
-        ;;
-    (-C)
-        for i in "$@"; do
-            find-copy-go "$i" .
-            cd ..
+            find-copy "$i" .
         done
         ;;
     (*)
