@@ -32,7 +32,7 @@ function usage {
 \$builddir: \"$builddir\"
 absent -S [name..]: build and install
 absent -G [name..]: copy to the current directory
-absent [string]: select from packages whose name matches the given string"
+absent [string]: select from packages whose name matches the given substring"
 }
 
 function find-copy {
